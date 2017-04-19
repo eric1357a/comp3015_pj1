@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="comp3015-master:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/comp3015_master_server.jar</output-path>
+    <root id="archive" name="comp3015-master.jar">
+      <element id="module-output" name="comp3015_PJ1" />
+    </root>
+  </artifact>
+</component>
