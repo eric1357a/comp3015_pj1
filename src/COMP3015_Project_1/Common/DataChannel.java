@@ -65,10 +65,10 @@ public class DataChannel<T extends Closeable> extends Thread {
     private void transferBytes(InputStream in, OutputStream out) throws IOException {
         long readed = 0L;
 
-        byte[] reading = new byte[1024];
+        byte[] reading = new byte[8192];
         int thisRead = 0;
         while ((thisRead = in.read(reading)) > -1 && !isInterrupted()) {
-            out.write(reading);
+            out.write(reading,0,thisRead);
             out.flush();
 
 //            System.out.println(readed += thisRead);

@@ -118,6 +118,7 @@ class AcceptedClientConnection {
     private String predict(String content) {
         if (content.equals("logout"))
             closing = true;
+
         return content;
     }
 

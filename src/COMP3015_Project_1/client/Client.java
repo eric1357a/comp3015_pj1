@@ -90,7 +90,7 @@ class Client extends JFrame implements ActionListener {
             } catch (IOException e) {
                 System.out.println("Socket init failed, retry (Y/N)?");
                 if (sc.nextLine().toLowerCase().equals("n")) {
-                    return;
+                    System.exit(-1);
                 } else {
                     check = false;
                 }

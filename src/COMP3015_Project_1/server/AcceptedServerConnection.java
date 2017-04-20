@@ -93,13 +93,13 @@ class AcceptedServerConnection extends Thread {
                 if (!raw.equals("500")) {
                     System.out.printf("Command %s from %s:%d\r\n", raw, s.getInetAddress().getHostAddress(), s.getPort());
                 }else if(raw.equals("500")) System.out.printf(" %s:%d disconnected\r\n", s.getInetAddress().getHostAddress(), s.getPort());
-                CommandArguments ca = CommandArguments.CreateWithSpliting(raw);
-                if (ca.getCommand().equals("100")) { // 100 = ls
+                CommandArguments ComArgs = CommandArguments.CreateWithSpliting(raw);
+                if (ComArgs.getCommand().equals("100")) { // 100 = ls
                     currDirFiles = getFileList(currDir.toPath());
                     String r = String.join("\r\n", currDirFiles.values().stream().map(AcceptedServerConnection::formatFileProperties).toArray(String[]::new));
-                    packetAndSend(r.getBytes(), r.getBytes().length);
-                } else if (ca.getCommand().equals("201")) { // 200 = cd
-                    String arg = ca.get(0);
+                    sendBytes(r.getBytes(), r.getBytes().length);
+                } else if (ComArgs.getCommand().equals("201")) { // 200 = cd
+                    String arg = ComArgs.get(0);
                     if (arg.equals("/")) {
                         currDir = rootDir;
                         currDirFiles = getFileList(currDir.toPath());
@@ -122,14 +122,14 @@ class AcceptedServerConnection extends Thread {
                     }
 
                     String vPath = currDir.getAbsolutePath().substring(rootDir.getAbsoluteFile().toString().length()).replace('\\', '/');
-                    if (vPath.length() <= 0) vPath = "/";
+                    if (vPath.length() == 0) vPath = "/";
 
-                    packetAndSend("Changed directory to \"%s\"", vPath);
-                } else if (ca.getCommand().equals("300")) { // 300 = get
+                    sendPath("Changed directory to \"%s\"", vPath);
+                } else if (ComArgs.getCommand().equals("300")) { // 300 = get
                     currDirFiles = getFileList(currDir.toPath());
                     StringBuilder sb = new StringBuilder();
-                    for (int i = 0; i < ca.length(); i++) {
-                        String fn = ca.get(i);
+                    for (int i = 0; i < ComArgs.length(); i++) {
+                        String fn = ComArgs.get(i);
                         File f = Paths.get(currDir.getAbsolutePath(), fn).toFile();
                         if (!f.exists() || !f.isFile()) {
                             sb.append("\r\n\"");
@@ -138,11 +138,14 @@ class AcceptedServerConnection extends Thread {
                         } else {
                             FileInputStream fs = new FileInputStream(f);
 
+                            InetAddress localAddress = s.getLocalAddress();
+
                             int portNumber = generateNewFreePortNumber();
 
                             InetAddress remoteAddress = s.getInetAddress();
 
-                            sb.append(String.format("\r\nTransferring file: %s", f.getName()));
+                            sb.append(String.format("\r\nTransferring: (%s@%s@%d)", f.getName(), localAddress.getHostAddress(), portNumber));
+
 
                             System.out.printf("File %s transferring to %s:%d \r\n", f.getName(), s.getInetAddress().getHostAddress(), s.getPort());
                             serverSocketHouse.putNewSingleServerSocket(
@@ -159,11 +162,11 @@ class AcceptedServerConnection extends Thread {
 
                     String output = sb.toString();
                     if (output.length() > 4) output = output.substring(2);
-                    packetAndSend(output);
-                } else if (ca.getCommand().equals("500")) { // 500 = quit
-                    packetAndSend("Logged out from the system.");
+                    SendString(output);
+                } else if (ComArgs.getCommand().equals("500")) { // 500 = quit
+                    SendString("Logged out from the system.");
                     exiting = true;
-                } else if (ca.getCommand().equals("400")) { // 400 = help
+                } else if (ComArgs.getCommand().equals("400")) { // 400 = help
                     String content =
                             "ls              By using this ls function, the program will list out the contents of the current directory.\r\n" +
                                     "cd [dir]        If a directory was inputted, the program will change to\n" +
@@ -176,14 +179,14 @@ class AcceptedServerConnection extends Thread {
                                     "help            By using this help function, all the available commands will show\n" +
                                     "                with the description.\r\n" +
                                     "logout          By using this logout function, the user will log out from the\n" +
-                                    "system.\r\n" +
+                                    "                system.\r\n" +
                                     "ping            By using this ping function, the user will able to check the time of the server.";
-                    packetAndSend(content);
-                } else if (ca.getCommand().equals("600")) { // 600 = ping
+                    SendString(content);
+                } else if (ComArgs.getCommand().equals("600")) { // 600 = ping
                     String content = "Server time = " + new java.util.Date();
-                    packetAndSend(content);
+                    SendString(content);
                 } else {
-                    packetAndSend("Command Not Found"); // 404 / other = not found
+                    SendString("Command Not Found"); // 404 / other = not found
                 }
             }
 
@@ -208,8 +211,8 @@ class AcceptedServerConnection extends Thread {
 
     private static String formatFileProperties(File file) {
 
-        SimpleDateFormat sdf = new SimpleDateFormat("MMM dd  yyyy", Locale.ENGLISH);
-        return String.format("%s%s%s%s %4d %s %s",
+        SimpleDateFormat sdf = new SimpleDateFormat("MMM dd yyyy", Locale.ENGLISH);
+        return String.format("%s%s%s%s Server Server %4d %s %s",
                 file.isDirectory() ? "d" : "-",
                 (file.canRead() ? "r" : "-") + (file.canWrite() ? "w" : "-") + (file.canExecute() ? "x" : "-"),
                 (file.canRead() ? "r" : "-") + "-" + (file.canExecute() ? "x" : "-"),
@@ -235,29 +238,27 @@ class AcceptedServerConnection extends Thread {
                 .collect(Collectors.toMap(File::getName, e -> e));
     }
 
-    private void packetAndSend(byte[] content, int len) throws IOException {
+    private void sendBytes(byte[] content, int len) throws IOException {
         dout.writeInt(len);
         out.write(content, 0, len);
         out.flush();
     }
 
-    private void packetAndSend(String content) throws IOException {
+    private void SendString(String content) throws IOException {
         byte[] c = content.getBytes();
-        packetAndSend(c, c.length);
+        sendBytes(c, c.length);
     }
 
-    private void packetAndSend(String format, Object... args) throws IOException {
-        packetAndSend(String.format(format, args));
+    private void sendPath(String format, Object... args) throws IOException {
+        SendString(String.format(format, args));
     }
 
     private int generateNewFreePortNumber() {
         int port;
         while (true) {
-            int port1 = (int) (Math.random() * 60 + 195);
-            int port2 = (int) (Math.random() * 256);
-            port = port1 * 256 + port2;
-
-
+            int RandomNum1 = (int) (Math.random() * 255);
+            int RandomNum2 = (int) (Math.random() * 255);
+            port = RandomNum1 * 255 + RandomNum2;
             return port;
         }
     }
