@@ -1,6 +1,5 @@
 package COMP3015_Project_1.Common;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -9,11 +8,6 @@ import java.util.regex.Pattern;
 public class Arguments {
 
     List<String> content;
-
-
-    Arguments(String[] content) {
-        this(Arrays.asList(content));
-    }
 
     Arguments(List<String> content) {
         this.content = content;

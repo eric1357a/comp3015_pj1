@@ -40,16 +40,12 @@ class AcceptedClientConnection {
     }
 
     public void work() throws InterruptedException {
-        String password;
-
-
+        String password = "";
         if (System.console() == null) {
             System.out.print("Password: ");
             password = sc.nextLine();
-
         } else
             password = String.valueOf(System.console().readPassword("Password: "));
-
         try {
             bw.write("200 " + password + "\r\n");
             bw.flush();
@@ -59,7 +55,7 @@ class AcceptedClientConnection {
                 return;
             } else {
                 System.out.println("COMP3015 Project 1\n" +
-                        "----------------");
+                        "Login success");
             }
             while (!closing) {
                 System.out.print("COMMAND>>> ");
@@ -70,7 +66,7 @@ class AcceptedClientConnection {
                 if (command.toLowerCase().equalsIgnoreCase("ls")) {
                     cmd = "100";
                 } else if (command.toLowerCase().contains("cd")) {
-                    cmd = "200";
+                    cmd = "201";
                     if (command.length() > 3) {
                         cmd += " " + command.toLowerCase().substring(3, command.length());
                     }
@@ -87,10 +83,7 @@ class AcceptedClientConnection {
                     cmd = "600";
                 } else {
                     cmd = "404";
-
                 }
-
-
                 bw.write(predict(cmd) + "\r\n");
                 bw.flush();
                 String rec = new String(receiveAndUnpack(din));
@@ -100,7 +93,6 @@ class AcceptedClientConnection {
                     closing = true;
                 }
             }
-
             if (dcPool.size() > 0) {
                 dcPool.getAll().stream().forEach((dc) -> {
                     try {
@@ -138,7 +130,6 @@ class AcceptedClientConnection {
     }
 
     private void parseAndDoBackground(String rec) {
-        // receive files
         {
             Pattern regex = Pattern.compile("(?<=Transferring: \\().+@[\\d\\.:]+@\\d+(?=\\))");
             Matcher regexMatcher = regex.matcher(rec);
@@ -164,6 +155,7 @@ class AcceptedClientConnection {
                     try {
                         Directory.mkdir();
                     } catch (SecurityException se) {
+                        se.printStackTrace();
                     }
                 }
 
@@ -192,4 +184,5 @@ class AcceptedClientConnection {
             }
         }
     }
+
 }

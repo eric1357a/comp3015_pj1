@@ -98,7 +98,7 @@ class AcceptedServerConnection extends Thread {
                     currDirFiles = getFileList(currDir.toPath());
                     String r = String.join("\r\n", currDirFiles.values().stream().map(AcceptedServerConnection::formatFileProperties).toArray(String[]::new));
                     packetAndSend(r.getBytes(), r.getBytes().length);
-                } else if (ca.getCommand().equals("200")) { // 200 = cd
+                } else if (ca.getCommand().equals("201")) { // 200 = cd
                     String arg = ca.get(0);
                     if (arg.equals("/")) {
                         currDir = rootDir;
@@ -195,7 +195,7 @@ class AcceptedServerConnection extends Thread {
                         else
                             dc.join();
                     } catch (InterruptedException e) {
-                        System.out.println("Interrupted on waiting data channel \"%s\" to be completed. Will kill all remainings.");
+                        System.out.println("Waiting for \"%s\" finish.");
                     }
                 });
             }
